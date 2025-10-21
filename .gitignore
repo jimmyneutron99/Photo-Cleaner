@@ -1,0 +1,18 @@
+# Byte‑compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# VS Code / PyCharm / other IDE artefacts
+.vscode/
+.idea/
+*.iml
+
+# macOS Finder metadata
+.DS_Store
+
+# Windows thumbnail cache
+Thumbs.db
+
+# Temporary files created by the script
+*.tmp
