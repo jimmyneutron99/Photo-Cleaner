@@ -33,7 +33,7 @@ A **single‑file, zero‑dependency‑except‑Pillow** command‑line tool tha
 
 ```bash
 # Clone the repo
-git clone https://github.com/<YOUR_USER>/photo-cleaner.git
+git clone https://github.com/jimmyneutron99/photo-cleaner.git
 cd photo-cleaner
 
 # (Optional but recommended) use a virtual environment
