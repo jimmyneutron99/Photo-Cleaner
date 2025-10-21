@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 """
-cleanphotos.py
-==============
-
+cleanphotos.py ==============
 A tiny command‑line utility that:
-
 * Walks a folder (recursively) and finds common image types.
 * Strips ALL metadata (EXIF / IPTC / XMP).
 * Removes any data that appears after the official end‑of‑file marker,
@@ -13,8 +10,8 @@ A tiny command‑line utility that:
   obscure “metadata‑like” structures inside the image stream.
 * Overwrites the original file with the cleaned version.
 
-⚠️  The script *replaces* the original files.  Keep a backup of
-    anything you don’t want to lose.
+⚠️  The script *replaces* the original files.
+Keep a backup of anything you don’t want to lose.
 
 Usage
 -----
@@ -22,16 +19,17 @@ Usage
     python cleanphotos.py /path/to/folder   # folder supplied as argument
 """
 
-import os
-import sys
 import argparse
+import os
 import pathlib
 import shutil
+import sys
 import tempfile
+from io import BytesIO
 from typing import List
 
-from tqdm import tqdm
 from PIL import Image, UnidentifiedImageError
+from tqdm import tqdm
 
 # ----------------------------------------------------------------------
 # Helper functions for “trailing‑data trimming”
@@ -44,13 +42,12 @@ def trim_jpeg(data: bytes) -> bytes:
     Anything after the *last* occurrence of those bytes is considered
     trailing data and is removed.
     """
-    eoi = b'\xff\xd9'
+    eoi = b"\xff\xd9"
     pos = data.rfind(eoi)
-    if pos == -1:
-        # Not a valid JPEG – just return the original data.
+    if pos == -1:  # Not a valid JPEG – just return the original data.
         return data
     # Include the EOI marker itself.
-    return data[: pos + len(eoi)]
+    return data[:pos + len(eoi)]
 
 
 def trim_png(data: bytes) -> bytes:
@@ -61,7 +58,7 @@ def trim_png(data: bytes) -> bytes:
     then discards everything after that.
     """
     # PNG signature (first 8 bytes) must be present.
-    if not data.startswith(b'\x89PNG\r\n\x1a\n'):
+    if not data.startswith(b"\x89PNG\r\n\x1a\n"):
         return data  # Not a PNG.
 
     # Scan chunks.
@@ -74,9 +71,9 @@ def trim_png(data: bytes) -> bytes:
         # Move to next chunk start.
         next_offset = offset + 8 + length + 4  # 8 header + data + CRC
 
-        if ctype == b'IEND':
+        if ctype == b"IEND":
             # Return everything up to (and including) IEND chunk.
-            return data[: next_offset]
+            return data[:next_offset]
 
         offset = next_offset
 
@@ -89,7 +86,7 @@ def trim_gif(data: bytes) -> bytes:
     GIF files end with a trailer byte 0x3B.
     Anything after the *last* 0x3B is stripped.
     """
-    trailer = b'\x3b'
+    trailer = b"\x3b"
     pos = data.rfind(trailer)
     if pos == -1:
         return data
@@ -98,12 +95,14 @@ def trim_gif(data: bytes) -> bytes:
 
 def trim_webp(data: bytes) -> bytes:
     """
-    WebP is based on RIFF. The file should end exactly at the size indicated in the header.
-    If extra bytes exist after that size they are removed.
+    WebP is based on RIFF. The file should end exactly at the size
+    indicated in the header. If extra bytes exist after that size they
+    are removed.
     """
-    if not data.startswith(b'RIFF'):
+    if not data.startswith(b"RIFF"):
         return data
-    # Bytes 4‑7 contain the file size (little‑endian) *excluding* the 8‑byte RIFF header.
+    # Bytes 4‑7 contain the file size (little‑endian) *excluding*
+    # the 8‑byte RIFF header.
     declared_size = int.from_bytes(data[4:8], "little")
     expected_len = declared_size + 8
     if len(data) > expected_len:
@@ -112,9 +111,7 @@ def trim_webp(data: bytes) -> bytes:
 
 
 def trim_image_data(data: bytes, ext: str) -> bytes:
-    """
-    Dispatch to the appropriate trimming routine based on extension.
-    """
+    """Dispatch to the appropriate trimming routine based on extension."""
     ext = ext.lower()
     if ext in (".jpg", ".jpeg"):
         return trim_jpeg(data)
@@ -150,14 +147,12 @@ def clean_image_file(path: pathlib.Path) -> bool:
         print(f"❌ Unable to read {path}: {e}")
         return False
 
-    # 1️⃣  Trim any trailing data that may have been appended.
+    # 1️⃣ Trim any trailing data that may have been appended.
     trimmed = trim_image_data(raw, path.suffix)
 
-    # 2️⃣  Load with Pillow – this strips all metadata automatically.
-    #     We use a BytesIO so Pillow works on the trimmed data even if
-    #     the original file had extra garbage.
-    from io import BytesIO
-
+    # 2️⃣ Load with Pillow – this strips all metadata automatically.
+    #    We use a BytesIO so Pillow works on the trimmed data even if
+    #    the original file had extra garbage.
     try:
         img = Image.open(BytesIO(trimmed))
         img.load()  # force loading, catches truncated files
@@ -168,7 +163,7 @@ def clean_image_file(path: pathlib.Path) -> bool:
         print(f"❌ Error opening {path}: {e}")
         return False
 
-    # 3️⃣  Re‑encode and write to a temporary location.
+    # 3️⃣ Re‑encode and write to a temporary location.
     # Preserve the original format (JPEG, PNG, …) so the file extension stays valid.
     format_name = img.format  # e.g. "JPEG", "PNG"
     if format_name is None:
@@ -189,12 +184,11 @@ def clean_image_file(path: pathlib.Path) -> bool:
     if format_name == "JPEG":
         save_kwargs["quality"] = 95
         save_kwargs["optimize"] = True
-        # Do not save EXIF at all.
     elif format_name == "PNG":
         save_kwargs["optimize"] = True
 
-    # Temporary path in the same folder – this makes atomic `replace` work on
-    # Windows as well.
+    # Temporary path in the same folder – this makes atomic `replace`
+    # work on Windows as well.
     tmp_fd, tmp_path = tempfile.mkstemp(suffix=path.suffix, dir=path.parent)
     os.close(tmp_fd)  # Pillow will open it itself.
 
@@ -210,7 +204,7 @@ def clean_image_file(path: pathlib.Path) -> bool:
     finally:
         img.close()
 
-    # 4️⃣  Atomically replace the original file.
+    # 4️⃣ Atomically replace the original file.
     try:
         # Preserve original file permissions.
         shutil.copymode(path, tmp_path)
@@ -227,11 +221,9 @@ def clean_image_file(path: pathlib.Path) -> bool:
 
 
 def find_image_files(root: pathlib.Path) -> List[pathlib.Path]:
-    """
-    Recursively collect files with known image extensions.
-    """
+    """Recursively collect files with known image extensions."""
     img_exts = {".jpg", ".jpeg", ".png", ".gif", ".tif", ".tiff", ".webp"}
-    files = []
+    files: List[pathlib.Path] = []
     for dirpath, _, filenames in os.walk(root):
         for name in filenames:
             p = pathlib.Path(dirpath) / name
@@ -245,9 +237,12 @@ def find_image_files(root: pathlib.Path) -> List[pathlib.Path]:
 # ----------------------------------------------------------------------
 
 
-def parse_arguments():
+def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Scan a folder, strip all metadata and trailing data from image files, and overwrite the originals."
+        description=(
+            "Scan a folder, strip all metadata and trailing data from "
+            "image files, and overwrite the originals."
+        )
     )
     parser.add_argument(
         "folder",
@@ -277,12 +272,14 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def main():
+def main() -> None:
     args = parse_arguments()
 
-    # 0️⃣  Determine folder path.
+    # 0️⃣ Determine folder path.
     if args.folder is None:
-        folder_input = input("📂 Enter the full path to the folder containing your photos: ").strip()
+        folder_input = input(
+            "📂 Enter the full path to the folder containing your photos: "
+        ).strip()
         folder = pathlib.Path(folder_input).expanduser().resolve()
     else:
         folder = pathlib.Path(args.folder).expanduser().resolve()
@@ -291,7 +288,7 @@ def main():
         print(f"❗  The path '{folder}' is not a readable directory.")
         sys.exit(1)
 
-    # 1️⃣  Build the list of image files.
+    # 1️⃣ Build the list of image files.
     image_files = find_image_files(folder)
     if not image_files:
         print("🔎 No image files found in the given folder.")
@@ -299,11 +296,13 @@ def main():
 
     print(f"🔎 Found {len(image_files)} image file(s) under {folder}")
 
-    # 2️⃣  Process each file.
+    # 2️⃣ Process each file.
     cleaned = 0
     failed = 0
 
-    iterator = tqdm(image_files, desc="Cleaning", unit="file") if not args.dry_run else image_files
+    iterator = (
+        tqdm(image_files, desc="Cleaning", unit="file") if not args.dry_run else image_files
+    )
 
     for img_path in iterator:
         if args.verbose:
@@ -320,7 +319,7 @@ def main():
         else:
             failed += 1
 
-    # 3️⃣  Summary
+    # 3️⃣ Summary
     print("\n🗒️  Summary")
     print(f"   ✔️  Cleaned images : {cleaned}")
     if failed:
