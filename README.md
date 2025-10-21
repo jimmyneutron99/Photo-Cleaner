@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)  
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-brightgreen.svg)](https://www.python.org/downloads/)  
-[![GitHub Actions CI](https://github.com/<YOUR_USER>/photo-cleaner/actions/workflows/ci.yml/badge.svg)](https://github.com/<YOUR_USER>/photo-cleaner/actions/workflows/ci.yml)
+[![GitHub Actions CI](https://github.com/jimmyneutron99/photo-cleaner/actions/workflows/ci.yml/badge.svg)](https://github.com/<YOUR_USER>/photo-cleaner/actions/workflows/ci.yml)
 
 A **single‑file, zero‑dependency‑except‑Pillow** command‑line tool that:
 
