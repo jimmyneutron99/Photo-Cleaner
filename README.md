@@ -3,7 +3,7 @@
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-brightgreen.svg)](https://www.python.org/downloads/)
 [![GitHub Actions CI](https://github.com/jimmyneutron99/photo-cleaner/actions/workflows/ci.yml/badge.svg)](https://github.com/jimmyneutron99/photo-cleaner/actions/workflows/ci.yml)
 
-A **single‑file command‑line tool that:
+A single‑file command‑line tool that:
 
 * Strips **all** EXIF / IPTC / XMP metadata from JPEG, PNG, GIF, TIFF, WebP, etc.  
 * Detects and **removes any hidden or appended data** (e.g. a zip file, encrypted blob, or stray bytes after the official end‑of‑image marker).  
